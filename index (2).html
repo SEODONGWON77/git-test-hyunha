@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>가계부 어플</title>
+    <link rel="stylesheet" href="style.css" />
+    <script
+      src="https://kit.fontawesome.com/f022b7ec42.js"
+      crossorigin="anonymous"
+    ></script>
+  </head>
+
+  <body>
+    <div class="container">
+      <header>
+        <h1>소비기록</h1>
+        <!-- <img src="images/menu.png"> -->
+      </header>
+      <main>
+        <img src="images/wallet.png" />
+        <p>
+          안녕하세요, <span id="user_name"></span>님!<br />
+          현재 잔액은 <span id="grand-total"></span>입니다.
+        </p>
+        <div class="total_rate" id="total_rate">
+          <div class="total_plus" id="total_minus">
+            들어온 돈<br /><span id="plus"></span>
+          </div>
+          <div class="total_minus" id="total_minus">
+            나간 돈<br /><span id="minus"></span>
+          </div>
+        </div>
+      </main>
+      <section class="hisotry" id="hisotry">
+        <form>
+          <label>
+            <input
+              type="radio"
+              value="all"
+              name="renderList"
+              onclick="changeList(this.value)"
+            />전체내역
+          </label>
+          <label>
+            <input
+              type="radio"
+              value="plus"
+              name="renderList"
+              onclick="changeList(this.value)"
+            />수입
+          </label>
+          <label>
+            <input
+              type="radio"
+              value="minus"
+              name="renderList"
+              onclick="changeList(this.value)"
+            />지출
+          </label>
+        </form>
+        <div id="history_content" class="history_content"></div>
+        <div class="create" id="create" onclick="createBtn()">
+          <i class="fas fa-plus"></i><br />
+          새로운 내역을 추가하세요.
+        </div>
+      </section>
+      <section class="new" id="new">
+        <h2>새로운 거래</h2>
+        <form>
+          <legend>날짜</legend>
+          <input type="date" id="date" />
+          <legend>내용</legend>
+          <div class="btn" id="btn">
+            <label
+              ><input
+                type="radio"
+                id="income"
+                value="들어온 돈"
+                name="content"
+              />들어온 돈</label
+            >
+            <label
+              ><input
+                type="radio"
+                id="expense"
+                value="나간 돈"
+                name="content"
+              />나간 돈</label
+            ><br />
+          </div>
+          <input type="text" id="content" placeholder="내용을 입력하세요." />
+          <legend>금액</legend>
+          <input
+            type="number"
+            id="rate"
+            min="10"
+            placeholder="금액을 입력하세요."
+          /><br />
+          <input
+            type="button"
+            id="input_btn"
+            value="입력하기"
+            onclick="inputContent()"
+          />
+          <input
+            type="button"
+            id="close_btn"
+            value="닫기"
+            onclick="closeBtn()"
+          />
+        </form>
+      </section>
+    </div>
+    <script>
+      // 변수 선언 모음
+      const date = document.getElementById("date");
+      const content = document.getElementById("content");
+      const rate = document.getElementById("rate");
+      const historyContent = document.getElementById("history_content");
+      const newInput = document.getElementById("new");
+      const inputBtn = document.getElementById("input_btn");
+      const grandTotal = document.getElementById("grand-total");
+      const plus = document.getElementById("plus");
+      const minus = document.getElementById("minus");
+
+      //로컬스토리지 저장소
+      const rateHistory = localStorage.getItem("history6");
+      let historyObject = JSON.parse(rateHistory);
+      if (rateHistory === null) historyObject = [];
+      newHistory();
+
+      //새로운 내역 받아 저장하기
+      function inputContent() {
+        const radio = document.getElementsByName("content");
+        const radioSelect = radio[0].checked === true ? "+" : "-";
+        const myHistory = {
+          date: date.value,
+          content: content.value,
+          rate: rate.value,
+          radio: radioSelect,
+        };
+
+        historyObject.push(myHistory);
+        localStorage.setItem("history6", JSON.stringify(historyObject));
+        content.value = "";
+        rate.value = "";
+
+        newHistory();
+        closeBtn();
+        totalSet();
+      }
+
+      //내역 출력하기
+      function newHistory() {
+        console.log("2", historyObject);
+        let list = "";
+        historyObject.forEach((item, index) => {
+          const userate = parseInt(item.radio + item.rate);
+          list += `
+            <div id="history-list">
+                <h3>${item.date}</h3>
+                <p id="one">${item.content}<p>
+                <p id="two">${userate}<p>
+                <span id="del-btn" onclick="remove()">삭제<span>
+            </div>
+            `;
+        });
+        historyContent.innerHTML = list;
+        totalSet();
+      }
+
+      function totalSet() {
+        const maaap = historyObject.map((value, index) => {
+          return parseInt(value.radio + value.rate);
+        });
+        const reduceSum = maaap.reduce((acc, current) => acc + current, 0);
+        const filterpluseSum = maaap
+          .filter((value) => value > 0)
+          .reduce((acc, current) => acc + current, 0);
+
+        const filterminusSum = maaap
+          .filter((value) => value < 0)
+          .reduce((acc, current) => acc + current, 0);
+
+        grandTotal.innerHTML = reduceSum;
+        minus.innerHTML = filterminusSum;
+        plus.innerHTML = filterpluseSum;
+      }
+
+      function changeList() {
+        const radio = document.getElementsByName("renderList");
+        if (radio[0].checked) {
+          newHistory();
+        }
+        if (radio[1].checked) {
+          let list = "";
+          const moneyPlus = historyObject.filter(
+            (value) => value.radio === "+"
+          );
+          moneyPlus.forEach((item, index) => {
+            const userate = parseInt(item.radio + item.rate);
+            list += `
+            <div id="history-list">
+                <h3>${item.date}</h3>
+                <p id="one">${item.content}<p>
+                <p id="two">${userate}<p>
+                <span id="del-btn" onclick="remove()">삭제<span>
+            </div>
+            `;
+          });
+          historyContent.innerHTML = list;
+        }
+        if (radio[2].checked) {
+          let list = "";
+          const moneyMinus = historyObject.filter(
+            (value) => value.radio === "-"
+          );
+          moneyMinus.forEach((item, index) => {
+            const userate = parseInt(item.radio + item.rate);
+            list += `
+            <div id="history-list">
+                <h3>${item.date}</h3>
+                <p id="one">${item.content}<p>
+                <p id="two">${userate}<p>
+                <span id="del-btn" onclick="remove()">삭제<span>
+            </div>
+            `;
+          });
+          historyContent.innerHTML = list;
+        }
+      }
+
+      //삭제하기
+      function remove(index) {
+        historyObject.splice(index, 1);
+        localStorage.setItem("history6", JSON.stringify(historyObject));
+        newHistory();
+      }
+      // 새로운 내역을 추가하세요 버튼 클릭 시 새로운 거래 입력창 오픈
+      function createBtn() {
+        const newInput = document.getElementById("new");
+        newInput.style.display = "block";
+      }
+      // 닫기 버튼 클릭 시 창 닫기
+      function closeBtn() {
+        const newInput = document.getElementById("new");
+        newInput.style.display = "none";
+      }
+    </script>
+  </body>
+</html>
